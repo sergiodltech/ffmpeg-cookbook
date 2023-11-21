@@ -5,8 +5,10 @@ A collection of useful ffmpeg commands I have used
 
 ### High quality GIF's
 
+```shell-script
     1) ffmpeg -i "$input_file" -vf fps="$desired_fps",scale="$desired_downscale":flags=lanczos,palettegen "$palette_file"
     2) ffmpeg -i "$input_file" -i "$palette_file" -filter_complex "fps=$desired_fps,scale=$desired_downscale:flags=lanczos [out1]; [out1][1:v] paletteuse" "$output_file"
+```
 
 1. We first create a color palette of the input animation. There is a limited amount of colors GIF's can use. Instead of using a generic color limited palette, we generate a specific one for the original file.
   - $desired\_fps: 12 to 18 fps can greatly reduce the file size and still demonstrate movement perception. High FPS animations also load heavily whatever presenter software we might be using.
@@ -20,12 +22,14 @@ A collection of useful ffmpeg commands I have used
 An animation where the second part is the first part but reversed. On looping animated GIFs, this avoids the abrupt timeskip when the animation period is restarting.
 Based on the previous commands for "High Quality GIF's".
 
+```shell-script
     1) ffmpeg -i "$input_file" -vf fps="$desired_fps",scale="$desired_downscale":flags=lanczos,palettegen "$palette_file"
     2) # Setting up variables to improve readability
     export INPUT_BRANCH="scale=$desired_scale:flags=lanczos[out1];[out1][1:v]paletteuse, split [main][tmp]"
     export REVERSE_BRANCH="[tmp] reverse [reversed]"
     export OUTPUT_BRANCH="[main][reversed] concat"
     ffmpeg -i "$input_file" -i "$palette_file" -filter_complex "$INPUT_BRANCH; $REVERSE_BRANCH; $OUTPUT_BRANCH" "$output_file"
+```
 
 The second command splits the output of the output of "paletteuse" into two video streams. "tmp" is reversed and renamed to "reversed" and finally, both streams are concatenated.
 
@@ -35,8 +39,10 @@ Having a still image, fade it in and out once. This commands applies chromakey t
 
 Even if the zooming part of the animation has no transparency (only the countour), this animation may be overlayed over other presentations by applying it a lower opacity level. This can be used for a pulsating highlight over the background image.
 
+```shell-script
     1) ffmpeg -f lavfi -i color=color=white -loop 1 -i "$input_image" -filter_complex "[1] format=rgba,fade=in:st=0:d=1.5:alpha=1,fade=out:st=1.5:d=1.5:alpha=1 [overlay];[0][overlay]scale2ref[bg][overlay]; [bg][overlay] overlay=(main_w-overlay_w)/2:(main_h-overlay_h)/2" -t 3 -c:v libx264 -pix_fmt yuv420p "$tmp_video_file"
     2) ffmpeg -i "$tmp_video_file" -filter_complex "[0:v]chromakey=white,split[v0][v1];[v0]palettegen[p];[v1][p]paletteuse" "$output_gif"
+```
 
 1. We first create a temporal video file of our animation. I haven't been able to combine both commands in just one filter graph.
   - `[1] format=rgba` new stream from the second input source, with pixel format rgba
